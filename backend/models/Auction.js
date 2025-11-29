@@ -1,10 +1,14 @@
-// backend/models/Auction.js
+// models/Auction.js
 import mongoose from 'mongoose';
 
 const bidSchema = new mongoose.Schema({
   team: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team',
+    required: true
+  },
+  teamName: {
+    type: String,
     required: true
   },
   amount: {
@@ -35,6 +39,9 @@ const auctionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team'
   },
+  currentBidderName: {
+    type: String
+  },
   bids: [bidSchema],
   status: {
     type: String,
@@ -56,9 +63,19 @@ const auctionSchema = new mongoose.Schema({
   timerActive: {
     type: Boolean,
     default: false
+  },
+  startTime: {
+    type: Date
+  },
+  endTime: {
+    type: Date
   }
 }, {
   timestamps: true
 });
+
+// Index for better query performance
+auctionSchema.index({ status: 1 });
+auctionSchema.index({ player: 1 });
 
 export default mongoose.model('Auction', auctionSchema);
