@@ -1,4 +1,4 @@
-// frontend/src/context/AuctionContext.jsx
+// src/context/AuctionContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
@@ -14,7 +14,7 @@ export const useAuction = () => {
 
 export const AuctionProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [currentAuction, setCurrentAuction] = useState(null);
   const [bids, setBids] = useState([]);
   const [timer, setTimer] = useState(30);
   const [isAuctionActive, setIsAuctionActive] = useState(false);
@@ -23,34 +23,55 @@ export const AuctionProvider = ({ children }) => {
     const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
 
+    newSocket.on('auction-started', (auction) => {
+      setCurrentAuction(auction);
+      setIsAuctionActive(true);
+      setBids([]);
+    });
+
     newSocket.on('new-bid', (bidData) => {
       setBids(prev => [bidData, ...prev]);
+      if (currentAuction) {
+        setCurrentAuction(prev => ({
+          ...prev,
+          currentBid: bidData.amount,
+          currentBidder: bidData.team,
+          currentBidderName: bidData.teamName
+        }));
+      }
+    });
+
+    newSocket.on('player-sold', (data) => {
+      setIsAuctionActive(false);
+      setCurrentAuction(null);
+    });
+
+    newSocket.on('player-unsold', (data) => {
+      setIsAuctionActive(false);
+      setCurrentAuction(null);
     });
 
     return () => newSocket.close();
   }, []);
 
   const placeBid = (teamId, amount) => {
-    if (socket) {
+    if (socket && currentAuction) {
       socket.emit('place-bid', {
         team: teamId,
         amount,
-        auctionId: 'current' // You'll need to manage auction IDs
+        auctionId: currentAuction._id
       });
     }
   };
 
   const value = {
     socket,
-    currentPlayer,
+    currentAuction,
     bids,
     timer,
     isAuctionActive,
     placeBid,
-    setCurrentPlayer,
-    setBids,
-    setTimer,
-    setIsAuctionActive
+    setTimer
   };
 
   return (
